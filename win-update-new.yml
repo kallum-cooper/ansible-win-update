@@ -1,0 +1,68 @@
+---
+- name: Windows Monthly Update - Full Patch Cycle
+  hosts: windows
+  gather_facts: false
+  tasks:
+
+    - name: Install Windows Updates
+      ansible.windows.win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - UpdateRollups
+          - Updates
+          - DefinitionUpdates
+          - Drivers
+        reboot: true
+      register: update_result
+
+    - name: Show summary of installed updates
+      debug:
+        msg: |
+          Installed: {{ update_result.installed_update_count }}
+          Found:     {{ update_result.found_update_count }}
+          Failed:    {{ update_result.failed_update_count }}
+          Rebooted:  {{ update_result.rebooted }}
+          Required reboot: {{ update_result.reboot_required }}
+
+    - name: Show update details
+      debug:
+        var: update_result.updates
+    
+
+    - name: Force install *pending* updates via PowerShell (GUI style)
+      become: true
+      become_method: runas
+      vars:
+        ansible_become_user: Administrator
+        ansible_become_password: "Nd80uc325"
+      ansible.windows.win_powershell:
+        script: |
+          $Session = New-Object -ComObject Microsoft.Update.Session
+          $Searcher = $Session.CreateUpdateSearcher()
+          $SearchResult = $Searcher.Search("IsInstalled=0 and IsHidden=0")
+          $Installer = $Session.CreateUpdateInstaller()
+          $UpdatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
+
+          foreach ($update in $SearchResult.Updates) {
+              if (-not $update.EulaAccepted) { $update.AcceptEula() }
+              $UpdatesToInstall.Add($update) | Out-Null
+          }
+
+          if ($UpdatesToInstall.Count -gt 0) {
+              $Installer.Updates = $UpdatesToInstall
+              $Result = $Installer.Install()
+              Write-Output "Installed $($Result.Updates.Count) updates."
+          } else {
+              Write-Output "No updates needed."
+          }
+    - name: Get list of installed updates
+      win_command: powershell.exe Get-HotFix
+      register: hotfix_output
+
+    - name: Show installed updates
+      debug:
+       var: hotfix_output.stdout_lines
+    - name: Debug updates found
+      debug:
+        var: ansible_facts['updates']
