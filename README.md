@@ -52,8 +52,8 @@ New-NetFirewallRule -Name "Allow WinRM" `
 ```
 Clone This Repository
 ```
-git clone https://github.com/kallum.cooper/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/kallum-cooper/ansible-win-update.git
+cd ansible-win-update
 ```
 
 Update your inventory with target hosts and then run:
