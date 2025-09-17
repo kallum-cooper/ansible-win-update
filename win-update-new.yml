@@ -35,7 +35,7 @@
       become_method: runas
       vars:
         ansible_become_user: Administrator
-        ansible_become_password: "Nd80uc325"
+        ansible_become_password: "*******"
       ansible.windows.win_powershell:
         script: |
           $Session = New-Object -ComObject Microsoft.Update.Session
